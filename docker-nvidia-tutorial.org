@@ -1,0 +1,63 @@
+#+TITLE: Docker Nvidia Tutorial
+
+* Running a CUDA Capable Docker Container
+
+- Official NVIDIA PyTorch docker container: https://ngc.nvidia.com/catalog/containers/nvidia:pytorch
+  + Latest image (as of Aug. 2020): *nvcr.io/nvidia/pytorch:20.07-py3*
+
+- Show available GPUs:
+#+begin_src shell
+docker run --gpus all -it --rm nvcr.io/nvidia/pytorch:20.07-py3 nvidia-smi
+#+end_src
+
+- See if PyTorch can detect CUDA:
+#+begin_src shell
+docker run --gpus all --rm nvcr.io/nvidia/pytorch:20.07-py3 \
+    python -c "import torch; print(torch.cuda.is_available())"
+#+end_src
+
+* Creating a Custom Docker Image
+
+- A docker image represents your whole experiment environment, that is
+  + Linux environment
+  + Python environment
+
+- The /Dockerfile/ gives instructions on how to create the environment
+#+begin_src dockerfile
+# Select the base image
+FROM nvcr.io/nvidia/pytorch:20.07-py3
+
+# Select the working directory
+WORKDIR /app
+
+# Install SPFlow from the master branch
+RUN git clone https://github.com/SPFlow/SPFlow && \
+    cd SPFlow/src && \
+    bash create_pip_dist.sh && \
+    pip install dist/spflow-0.0.40-py3-none-any.whl
+
+# Install Python requirements
+RUN pip install -r requirements.txt
+#+end_src
+
+- To build a docker image (we now name it ~docker-tutorial~), run:
+#+begin_src shell
+docker build -t docker-tutorial .
+#+end_src
+
+- To test the docker image, run:
+#+begin_src shell
+docker run --gpus all -it --rm docker-tutorial python
+#+end_src
+
+* Running a Project in the Container
+
+- Project source code is not supposed to be built into the docker image
+- Rather, attach all source code as /volume/ when starting a new container
+
+#+begin_src shell
+docker run --gpus all --rm -it \
+    -v "$(pwd)"/src:/app/src \
+    docker-tutorial \
+    python src/run.py
+#+end_src
