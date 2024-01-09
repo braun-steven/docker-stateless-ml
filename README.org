@@ -35,19 +35,17 @@ docker build -t tutorial .
 To test if everything works, we can now start a container using this image:
 
 #+begin_src bash
-docker run --gpus all -it --rm tutorial -- python -c "print('Hello World from docker')"
+docker run --gpus all -it --rm tutorial python -c "print('Hello World from docker')"
 #+end_src
 
 Flags:
-- =--gpus all=: Give the container access to all GPUs on the host machine.
-- =-it=: Run the container interactively.
+- =--gpus all=: Give the container access to all GPUs on the host machine. Note, that for this flag we need the [[https://docs.docker.com/config/containers/resource_constraints/#gpu][nvidia-container-runtime]].
 - =--rm=: Remove the container after it is stopped since we do not care about the container state.
-- =--=: Everything after this is a command to be executed in the container.
 
 To make use of our project code, required data, and to store our results, we need to mount volumes into the container. We can do this using the =--volume= flag. The following will run the example [[file:src/run.py][=src/run.py=]] script of the repository using data in =data/= and storing results in =results/=:
 
 #+begin_src shell
-docker run --gpus all --rm -it \
+docker run --gpus all --rm \
     --volume "$(pwd)"/src:/app/src \
     --volume "$(pwd)"/data:/data \
     --volume "$(pwd)"/results:/results \
