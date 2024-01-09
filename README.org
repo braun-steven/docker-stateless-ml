@@ -1,26 +1,10 @@
 #+TITLE: Docker Nvidia Tutorial
 
-* Running a CUDA Capable Docker Container
-
-- Official NVIDIA PyTorch docker container: https://ngc.nvidia.com/catalog/containers/nvidia:pytorch 
-  + Latest image (as of Dec. 2023): *nvcr.io/nvidia/pytorch:23.12-py3*
-
-- Show available GPUs:
-    #+begin_src shell
-docker run --gpus all -it --rm nvcr.io/nvidia/pytorch:23.12-py3 nvidia-smi
-    #+end_src
-
-- See if PyTorch can detect CUDA:
-    #+begin_src shell
-docker run --gpus all --rm nvcr.io/nvidia/pytorch:23.12-py3 \
-    python -c "import torch; print(torch.cuda.is_available())"
-    #+end_src
-
 * Creating a Custom Docker Image
 
 - A docker image represents your whole experiment environment, that is
-  + Linux environment
-  + Python environment
+  + Linux environment and dependencies
+  + Python environment and dependencies
 
 - The /Dockerfile/ gives instructions on how to create the environment
     #+begin_src dockerfile
@@ -53,7 +37,7 @@ docker run --gpus all -it --rm docker-tutorial python
 * Running a Project in the Container
 
 - Project source code is not supposed to be built into the docker image
-- Rather, attach all source code as /volume/ when starting a new container:
+- Rather, attach all source code (and other resources) as /volume/ when starting a new container:
  
     Use the ~--volume SOURCE:DESTINATION~ to mount a file/directory from the host machine into the docker container:
     #+begin_src shell
