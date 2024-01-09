@@ -57,41 +57,7 @@ docker run --gpus all --rm -it \
 
 Output:
 #+begin_src shell
-=============
-== PyTorch ==
-=============
-
-NVIDIA Release 23.12 (build 76438008)
-PyTorch Version 2.2.0a0+81ea7a4
-
-Container image Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-
-Copyright (c) 2014-2023 Facebook Inc.
-Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
-Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
-Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
-Copyright (c) 2011-2013 NYU                      (Clement Farabet)
-Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
-Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
-Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
-Copyright (c) 2015      Google Inc.
-Copyright (c) 2015      Yangqing Jia
-Copyright (c) 2013-2016 The Caffe contributors
-All rights reserved.
-
-Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
-
-This container image and its contents are governed by the NVIDIA Deep Learning Container License.
-By pulling and using the container, you accept the terms and conditions of this license:
-https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
-
-NOTE: CUDA Forward Compatibility mode ENABLED.
-  Using CUDA 12.3 driver version 545.23.08 with kernel driver version 470.141.03.
-  See https://docs.nvidia.com/deploy/cuda-compatibility/ for details.
-
-NOTE: The SHMEM allocation limit is set to the default of 64MB.  This may be
-   insufficient for PyTorch.  NVIDIA recommends the use of the following flags:
-   docker run --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ...
+[...]  # truncated
 
 PyTorch Version: 2.0.1+cu117
 CUDA Available: True
@@ -102,3 +68,12 @@ Number of CUDA Devices Available: 16
 Current CUDA Device Index: 0
 #+end_src
 
+We can now investigate the saved result in =results/sums.csv=:
+
+#+begin_src shell
+$ cat results/sums.csv
+3.0
+12.0
+#+end_src
+
+With this, we have successfully used docker to thinly wrap our project into an environment defined in our Dockerfile. To be able to reproduce our experiment, we only need to ensure, that a different server has the project code, the data, and a build of the docker image (=docker build -t turorial .=). Bonus points if we are able to synchronize or symlink project, data, and result directories across servers via some shared storage.
