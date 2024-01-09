@@ -1,13 +1,10 @@
-#+TITLE: Docker Nvidia Tutorial
+#+TITLE: Stateless Docker Machine Learning Experiments Tutorial
 
-* Creating a Custom Docker Image
+In this tutorial we want explore how we can use docker as a thin wrapper to run machine learning experiments in a /stateless/ way. What do I mean by stateless? Let's look at a /stateful/ solution: We use some base image, e.g. =nvcr.io/nvidia/pytorch:23.12-py3=, and start an interactive container based off this image. We then attach a shell to this container and set up our system dependencies and project dependencies (e.g. pip requirements). To run our experiment we start some command =python main.py --foo --bar=. We get some results somewhere which we need to copy to some volume mapped directory on the host. We further modify something here and there in the container. Now the running container has a certain /state/. Sure we can detach and attach the container and hope that the server on which the container runs is never rebooted, or that we never have to switch the server and set everything up again. In most of these cases, we end up loosing our state and the actual experiment (running =python main.py ...=) becomes harder to reproduce.
 
-- A docker image represents your whole experiment environment, that is
-  + Linux environment and dependencies
-  + Python environment and dependencies
+*A stateless setup*: In a stateless docker setup, we want docker to act as a virtual environment for everything that is not (a) our code, (b) our data, and (c) our results. That is, we want docker to define the operating system, the system dependencies, the python version and environment, and the python dependencies. In docker, this can be done by defining a docker custom image in a [[file:Dockerfile][Dockerfile]]:
 
-- The /Dockerfile/ gives instructions on how to create the environment
-    #+begin_src dockerfile
+#+begin_src dockerfile
 # Select the base image
 FROM nvcr.io/nvidia/pytorch:23.12-py3
 
@@ -15,34 +12,93 @@ FROM nvcr.io/nvidia/pytorch:23.12-py3
 WORKDIR /app
 
 # Setup image: install system dependencies etc.
-# RUN ...
+# RUN apt install ...
 
 # Install Python requirements
 COPY ./requirements.txt ./requirements.txt
 RUN pip install -r requirements.txt
-    #+end_src
+#+end_src
 
-- To build a docker image (we now name it ~docker-tutorial~), run:
-    #+begin_src shell
-docker build -t docker-tutorial .
-    #+end_src
+You can follow these steps by cloning this repository:
 
-- To test the docker image, run:
-    #+begin_src shell
-docker run --gpus all -it --rm docker-tutorial python
-    #+end_src
+#+begin_src shell
+git clone https://github.com/braun-steven/docker-stateless-ml.git
+cd docker-stateless-ml
+#+end_src
 
+We start by building the docker image:
 
+#+begin_src bash
+docker build -t tutorial .
+#+end_src
 
-* Running a Project in the Container
+To test if everything works, we can now start a container using this image:
 
-- Project source code is not supposed to be built into the docker image
-- Rather, attach all source code (and other resources) as /volume/ when starting a new container:
- 
-    Use the ~--volume SOURCE:DESTINATION~ to mount a file/directory from the host machine into the docker container:
-    #+begin_src shell
+#+begin_src bash
+docker run --gpus all -it --rm tutorial -- python -c "print('Hello World from docker')"
+#+end_src
+
+Flags:
+- =--gpus all=: Give the container access to all GPUs on the host machine.
+- =-it=: Run the container interactively.
+- =--rm=: Remove the container after it is stopped since we do not care about the container state.
+- =--=: Everything after this is a command to be executed in the container.
+
+To make use of our project code, required data, and to store our results, we need to mount volumes into the container. We can do this using the =--volume= flag. The following will run the example [[file:src/run.py][=src/run.py=]] script of the repository using data in =data/= and storing results in =results/=:
+
+#+begin_src shell
 docker run --gpus all --rm -it \
     --volume "$(pwd)"/src:/app/src \
-    docker-tutorial \
+    --volume "$(pwd)"/data:/data \
+    --volume "$(pwd)"/results:/results \
+    tutorial \
     python /app/src/run.py
-    #+end_src
+#+end_src
+
+Output:
+#+begin_src shell
+=============
+== PyTorch ==
+=============
+
+NVIDIA Release 23.12 (build 76438008)
+PyTorch Version 2.2.0a0+81ea7a4
+
+Container image Copyright (c) 2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+Copyright (c) 2014-2023 Facebook Inc.
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015      Google Inc.
+Copyright (c) 2015      Yangqing Jia
+Copyright (c) 2013-2016 The Caffe contributors
+All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+NOTE: CUDA Forward Compatibility mode ENABLED.
+  Using CUDA 12.3 driver version 545.23.08 with kernel driver version 470.141.03.
+  See https://docs.nvidia.com/deploy/cuda-compatibility/ for details.
+
+NOTE: The SHMEM allocation limit is set to the default of 64MB.  This may be
+   insufficient for PyTorch.  NVIDIA recommends the use of the following flags:
+   docker run --gpus all --ipc=host --ulimit memlock=-1 --ulimit stack=67108864 ...
+
+PyTorch Version: 2.0.1+cu117
+CUDA Available: True
+CUDA Version: 11.7
+CuDNN Version: 8500
+CUDA Device Name: Tesla V100-SXM3-32GB-H
+Number of CUDA Devices Available: 16
+Current CUDA Device Index: 0
+#+end_src
+
