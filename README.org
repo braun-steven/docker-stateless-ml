@@ -64,6 +64,8 @@ CuDNN Version: 8500
 CUDA Device Name: Tesla V100-SXM3-32GB-H
 Number of CUDA Devices Available: 16
 Current CUDA Device Index: 0
+Reading /data/samples.csv
+Writing /results/sums.csv
 #+end_src
 
 We can now investigate the saved result on the host (i.e., not in the docker container) in =results/sums.csv=:
